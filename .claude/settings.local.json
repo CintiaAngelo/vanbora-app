@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.figma.com)",
+      "mcp__Claude_in_Chrome__navigate",
+      "Bash(pip show *)",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(npm --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(npx --version)",
+      "PowerShell($paths = @\\(\"$env:ProgramFiles\\\\nodejs\\\\node.exe\",\"${env:ProgramFiles\\(x86\\)}\\\\nodejs\\\\node.exe\",\"$env:LOCALAPPDATA\\\\Programs\\\\nodejs\\\\node.exe\",\"$env:APPDATA\\\\npm\\\\node.exe\"\\); foreach\\($p in $paths\\){ if\\(Test-Path $p\\){ Write-Output \"FOUND: $p\"} }; Get-Command nvm -ErrorAction SilentlyContinue | Select-Object Source; where.exe node 2>$null)",
+      "PowerShell(& \"$env:ProgramFiles\\\\nodejs\\\\node.exe\" --version; & \"$env:ProgramFiles\\\\nodejs\\\\npm.cmd\" --version)",
+      "PowerShell($env:Path = \"$env:ProgramFiles\\\\nodejs;\" + $env:Path; npx tsc --noEmit)"
+    ]
+  }
+}
