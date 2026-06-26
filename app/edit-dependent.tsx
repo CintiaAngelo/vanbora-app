@@ -1,52 +1,78 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { Alert, Pressable, StyleSheet, Text } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader, Button, Input, Screen, SchoolPicker } from '@/components';
 import { useAppState } from '@/context/AppState';
-import { addDependent } from '@/api/dependents';
-import { spacing, radius, useThemedScreen } from '@/theme';
+import { deleteDependent, updateDependent } from '@/api/dependents';
+import { radius, spacing, useThemedScreen } from '@/theme';
 import type { ThemeColors, Typography } from '@/theme';
 
-/** Cadastro de um novo dependente (aluno) do responsável. */
-export default function AddDependentScreen() {
+/** Edição e exclusão dos dados de um dependente. */
+export default function EditDependentScreen() {
   const { colors, typography, styles } = useThemedScreen(createStyles);
   const { token, refreshDependents } = useAppState();
-  const [name, setName] = useState('');
+  const params = useLocalSearchParams<{ id?: string; name?: string; school?: string }>();
+  const id = Number(params.id);
+
+  const [name, setName] = useState(params.name ?? '');
+  const [schoolName, setSchoolName] = useState(params.school ?? '');
   const [schoolId, setSchoolId] = useState<number | null>(null);
-  const [schoolName, setSchoolName] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave() {
-    if (!name.trim()) {
-      setError('Informe o nome do aluno.');
-      return;
-    }
-    if (!schoolId) {
-      setError('Selecione a escola.');
+    if (!name.trim() || !schoolName.trim()) {
+      setError('Preencha o nome e a escola.');
       return;
     }
     if (!token) return;
-    setLoading(true);
+    setSaving(true);
     setError(null);
     try {
-      await addDependent(token, { name: name.trim(), school: schoolName, schoolId });
+      await updateDependent(token, id, { name: name.trim(), school: schoolName, schoolId });
       await refreshDependents();
       router.back();
-    } catch (err: any) {
-      setError(err?.message ?? 'Falha ao cadastrar dependente.');
+    } catch (e: any) {
+      setError(e?.message ?? 'Falha ao salvar.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
+  async function doDelete() {
+    if (!token) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteDependent(token, id);
+      await refreshDependents();
+      router.back();
+    } catch (e: any) {
+      setError(e?.message ?? 'Falha ao excluir.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert(
+      'Excluir dependente',
+      `Tem certeza que deseja excluir ${name || 'este dependente'}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: doDelete },
+      ],
+    );
+  }
+
   return (
-    <Screen footer={<Button label="Salvar dependente" onPress={handleSave} loading={loading} />}>
+    <Screen footer={<Button label="Salvar alterações" onPress={handleSave} loading={saving} />}>
       <AppHeader showBack />
-      <Text style={[typography.title, styles.title]}>Adicionar Dependente</Text>
-      <Text style={styles.subtitle}>Cadastre o aluno que será transportado.</Text>
+      <Text style={[typography.title, styles.title]}>Editar Dependente</Text>
+      <Text style={styles.subtitle}>Atualize os dados do aluno.</Text>
 
       <Input
         icon="person-outline"
@@ -55,7 +81,6 @@ export default function AddDependentScreen() {
         onChangeText={setName}
         containerStyle={styles.field}
       />
-
       <Text style={styles.fieldLabel}>Escola</Text>
       <Pressable style={styles.picker} onPress={() => setPickerOpen(true)}>
         <Ionicons name="school-outline" size={18} color={colors.textMuted} />
@@ -75,6 +100,11 @@ export default function AddDependentScreen() {
           setSchoolName(s.name);
         }}
       />
+
+      <Pressable style={styles.deleteBtn} onPress={confirmDelete} disabled={deleting}>
+        <Ionicons name="trash-outline" size={18} color={colors.danger} />
+        <Text style={styles.deleteText}>{deleting ? 'Excluindo...' : 'Excluir dependente'}</Text>
+      </Pressable>
     </Screen>
   );
 }
@@ -108,5 +138,14 @@ const createStyles = (colors: ThemeColors, typography: Typography) =>
     },
     pickerText: { flex: 1, fontSize: 14, color: colors.textPrimary },
     pickerPlaceholder: { color: colors.textMuted },
-    error: { fontSize: 13, color: colors.danger, marginTop: spacing.md },
+    error: { fontSize: 13, color: colors.danger, marginTop: spacing.sm },
+    deleteBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.xxl,
+      paddingVertical: spacing.md,
+    },
+    deleteText: { fontSize: 15, fontWeight: '700', color: colors.danger },
   });
